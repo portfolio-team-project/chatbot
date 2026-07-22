@@ -1,2 +1,6 @@
 chatbot_env/
 models/
+.env
+dataset/
+wheels/
+__pycache__/
