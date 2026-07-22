@@ -1,7 +1,5 @@
 # chatbot
 
-Portfolio team project.
-
 팀 포트폴리오 사이트용 FAQ 챗봇입니다. 사전에 준비된 Q&A 데이터셋에서 BM25로 관련 질문을 검색하고, 검색된 내용만 근거로 LLM(Gemma-2-2B Q4_K_M 양자화 모델, llama.cpp)이 답변을 생성합니다. 데이터셋에 없는 질문은 모른다고 답합니다. 라즈베리파이4(8GB) 환경에서 동작하는 것을 목표로 합니다.
 
 ## 구조
@@ -13,6 +11,8 @@ Portfolio team project.
 - `models/` — GGUF 모델 파일. git에는 포함되지 않으며 팀 내부에서 별도 공유합니다.
 
 ## 준비
+
+Python 3.11.0 기준입니다.
 
 1. `chatbot_env`(또는 원하는 이름) 가상환경 생성 후 활성화
 2. 의존성 설치
