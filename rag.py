@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from pathlib import Path
 
 from dotenv import load_dotenv
 from llama_cpp import Llama
@@ -8,7 +9,7 @@ from rank_bm25 import BM25Okapi
 
 from prompts import build_system_prompt
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 
 DATASET_PATH = os.environ["DATASET_PATH"]
 MODEL_PATH = os.environ["MODEL_PATH"]
