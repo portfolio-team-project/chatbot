@@ -4,9 +4,11 @@
 
 ## 구조
 
-- `app.py` — FastAPI 진입점. 서버 시작 시 모델/BM25 인덱스를 한 번만 로드하고 `POST /chat`을 제공합니다.
-- `rag.py` — 데이터 로드, BM25 검색, LLM 답변 생성 등 RAG 핵심 로직.
+- `app.py` — FastAPI 진입점. 서버 시작 시 모델/BM25 인덱스를 한 번만 로드하고(`app.state`) 라우터를 등록합니다.
+- `rag.py` — 데이터 로드, BM25 검색, LLM 답변 생성 등 RAG 핵심 로직. `.env` 로드도 여기서 담당합니다.
 - `prompts.py` — LLM에 전달하는 프롬프트 템플릿.
+- `routers/chat.py` — `POST /api/chat` 엔드포인트. `APP_ENV=prod`일 때만 토큰 인증이 적용됩니다.
+- `routers/token_header.py` — `X-Token` 헤더 기반 인증 dependency.
 - `dataset/` — Q&A 데이터셋(`.jsonl`). git에는 포함되지 않으며 팀 내부에서 별도 공유합니다.
 - `models/` — GGUF 모델 파일. git에는 포함되지 않으며 팀 내부에서 별도 공유합니다.
 
@@ -41,8 +43,9 @@ uvicorn app:app --host $HOST --port $PORT
 | 항목 | 내용 |
 |---|---|
 | Method | POST |
-| Endpoint | `/chat` |
+| Endpoint | `/api/chat` |
 | Content-Type | `application/json` |
+| Auth | `APP_ENV=prod`일 때 `X-Token` 헤더에 `ACCESS_TOKEN` 값 필요 (`APP_ENV=test`면 인증 생략) |
 
 **Request**
 
