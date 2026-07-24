@@ -1,0 +1,40 @@
+# 라즈베리파이4(arm64) 등 타깃 기기에서 직접 빌드하는 것을 기준으로 작성.
+# llama_cpp_python은 PyPI에 arm64용 사전빌드 휠이 없어 소스에서 컴파일됨.
+# (wheels/ 폴더의 llama_cpp_python 휠은 win_amd64용이라 여기서는 사용하지 않음)
+
+# ---- build stage: 컴파일에 필요한 도구는 여기서만 사용하고 최종 이미지엔 남기지 않음 ----
+FROM python:3.11-slim-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential cmake ninja-build git \
+    && rm -rf /var/lib/apt/lists/*
+
+# 빌드 기기의 CPU에 맞춰 네이티브 최적화(-march=native)로 컴파일
+ENV CMAKE_ARGS="-DGGML_NATIVE=on"
+
+WORKDIR /build
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# ---- runtime stage: 실행에 필요한 것만 남긴 가벼운 이미지 ----
+FROM python:3.11-slim-bookworm
+
+# llama.cpp가 OpenMP로 빌드되는 경우 libgomp1이 필요
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 appuser
+
+COPY --from=builder /install /usr/local
+
+WORKDIR /app
+COPY app.py prompts.py rag.py ./
+COPY routers ./routers
+
+# dataset/, models/, .env는 이미지에 포함하지 않고 실행 시 볼륨으로 마운트
+RUN mkdir -p dataset models && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 9090
+
+CMD ["python", "app.py"]

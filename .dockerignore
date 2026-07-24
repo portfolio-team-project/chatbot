@@ -1,0 +1,11 @@
+chatbot_env/
+wheels/
+dataset/
+models/
+.env
+.git
+.gitignore
+__pycache__/
+**/__pycache__/
+*.pyc
+README.md
