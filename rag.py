@@ -64,12 +64,15 @@ def build_context(matches: list[tuple[dict, float]]) -> str:
     return "\n\n".join(lines)
 
 
+UNKNOWN_ANSWER = "죄송해요, 해당 내용은 갖고 있는 정보에 없어요."
+
+
 def answer(llm: Llama, retriever: Retriever, query: str) -> str:
     matches = retriever.search(query)
     matches = [(e, s) for e, s in matches if s >= SCORE_THRESHOLD]
 
     if not matches:
-        return "죄송해요, 해당 내용은 갖고 있는 정보에 없어요."
+        return UNKNOWN_ANSWER
 
     context = build_context(matches)
     prompt = build_system_prompt(context) + f"\n\n[사용자 질문]\n{query}"
@@ -80,4 +83,11 @@ def answer(llm: Llama, retriever: Retriever, query: str) -> str:
                 {"role": "user", "content": prompt},
             ]
         )
-    return response["choices"][0]["message"]["content"]
+    result = response["choices"][0]["message"]["content"]
+
+    # 작은 모델은 거절 문구를 그대로 재현하지 못하고 "~없어요" 대신 "~없어"처럼
+    # 반말로 바꾸거나 미묘하게 다르게 낼 때가 있어서, 거절 의도만 감지해서
+    # 항상 정해진 문구로 통일한다.
+    if "정보에 없" in result or "갖고 있지 않" in result:
+        return UNKNOWN_ANSWER
+    return result
