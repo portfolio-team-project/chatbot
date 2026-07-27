@@ -36,6 +36,12 @@ python app.py
 uvicorn app:app --host $HOST --port $PORT
 ```
 
+## Docker로 빌드
+
+```
+docker compose up -d --build
+```
+
 ## API
 
 메인 백엔드에서 서버 대 서버로 호출하는 구조이며, 브라우저에서 직접 호출하지 않습니다.
