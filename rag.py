@@ -2,6 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import Iterator
 
 from dotenv import load_dotenv
 from llama_cpp import Llama
@@ -75,3 +76,26 @@ def answer(llm: Llama, retriever: Retriever, query: str) -> str:
         ]
     )
     return response["choices"][0]["message"]["content"]
+
+
+def answer_stream(llm: Llama, retriever: Retriever, query: str) -> Iterator[str]:
+    matches = retriever.search(query)
+    matches = [(e, s) for e, s in matches if s >= SCORE_THRESHOLD]
+
+    if not matches:
+        yield "죄송해요, 해당 내용은 갖고 있는 정보에 없어요."
+        return
+
+    context = build_context(matches)
+    prompt = build_system_prompt(context) + f"\n\n[사용자 질문]\n{query}"
+
+    stream = llm.create_chat_completion(
+        messages=[
+            {"role": "user", "content": prompt},
+        ],
+        stream=True,
+    )
+    for chunk in stream:
+        delta = chunk["choices"][0]["delta"].get("content")
+        if delta:
+            yield delta
