@@ -20,7 +20,13 @@ async def lifespan(app: FastAPI):
     logger.info("FastAPI application starting up")
     entries = load_dataset(DATASET_PATH)
     app.state.retriever = Retriever(entries)
-    app.state.llm = Llama(model_path=MODEL_PATH, chat_format=CHAT_FORMAT, verbose=False)
+    app.state.llm = Llama(
+        model_path=MODEL_PATH,
+        chat_format=CHAT_FORMAT,
+        n_ctx=2048,
+        n_threads=4,
+        verbose=False,
+    )
     logger.info("FastAPI application startup complete")
     yield
     logger.info("FastAPI application shutting down")
