@@ -1,8 +1,8 @@
 import json
 import os
 import re
+import threading
 from pathlib import Path
-from typing import Iterator
 
 from dotenv import load_dotenv
 from llama_cpp import Llama
@@ -19,6 +19,10 @@ TOP_K = int(os.environ.get("RAG_TOP_K", 3))
 SCORE_THRESHOLD = float(os.environ.get("RAG_SCORE_THRESHOLD", 1.0))
 
 _TOKEN_RE = re.compile(r"[가-힣a-zA-Z0-9]+")
+
+# llama.cpp는 하나의 Llama 인스턴스에 동시 요청이 들어오는 걸 안전하게 처리하지 못해서
+# (컨테이너가 죽거나 연결이 끊기는 원인이 됨), 요청을 한 번에 하나씩만 처리하도록 직렬화한다.
+_llm_lock = threading.Lock()
 
 
 def tokenize(text: str) -> list[str]:
@@ -70,32 +74,10 @@ def answer(llm: Llama, retriever: Retriever, query: str) -> str:
     context = build_context(matches)
     prompt = build_system_prompt(context) + f"\n\n[사용자 질문]\n{query}"
 
-    response = llm.create_chat_completion(
-        messages=[
-            {"role": "user", "content": prompt},
-        ]
-    )
+    with _llm_lock:
+        response = llm.create_chat_completion(
+            messages=[
+                {"role": "user", "content": prompt},
+            ]
+        )
     return response["choices"][0]["message"]["content"]
-
-
-def answer_stream(llm: Llama, retriever: Retriever, query: str) -> Iterator[str]:
-    matches = retriever.search(query)
-    matches = [(e, s) for e, s in matches if s >= SCORE_THRESHOLD]
-
-    if not matches:
-        yield "죄송해요, 해당 내용은 갖고 있는 정보에 없어요."
-        return
-
-    context = build_context(matches)
-    prompt = build_system_prompt(context) + f"\n\n[사용자 질문]\n{query}"
-
-    stream = llm.create_chat_completion(
-        messages=[
-            {"role": "user", "content": prompt},
-        ],
-        stream=True,
-    )
-    for chunk in stream:
-        delta = chunk["choices"][0]["delta"].get("content")
-        if delta:
-            yield delta
