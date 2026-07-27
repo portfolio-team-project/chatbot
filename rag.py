@@ -86,8 +86,10 @@ def answer(llm: Llama, retriever: Retriever, query: str) -> str:
     result = response["choices"][0]["message"]["content"]
 
     # 작은 모델은 거절 문구를 그대로 재현하지 못하고 "~없어요" 대신 "~없어"처럼
-    # 반말로 바꾸거나 미묘하게 다르게 낼 때가 있어서, 거절 의도만 감지해서
-    # 항상 정해진 문구로 통일한다.
-    if "정보에 없" in result or "갖고 있지 않" in result:
+    # 반말로 바꾸거나 미묘하게 다르게 낼 때가 있어서, "답변 전체가 거절"인 경우만
+    # 정해진 문구로 통일한다. 일부만 거절하는 부분 답변(예: "A는 ~예요. B는 정보에 없어요.")까지
+    # 뭉개면 안 되므로, 응답이 짧게 거절 문구 하나로만 이루어진 경우만 대상으로 한다.
+    is_short_refusal = len(result) <= 40 and ("정보에 없" in result or "갖고 있지 않" in result)
+    if is_short_refusal:
         return UNKNOWN_ANSWER
     return result
